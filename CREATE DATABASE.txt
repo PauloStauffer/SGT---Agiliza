@@ -1,0 +1,51 @@
+CREATE DATABASE agiliza;
+GO
+USE agiliza;
+GO
+
+CREATE TABLE usuario (
+    id_usuario INT IDENTITY(1,1) PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    senha VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE area_da_vida (
+    id_area_pk INT IDENTITY(1,1) PRIMARY KEY,
+    id_usuario_fk INT NOT NULL,
+    nome VARCHAR(255) NOT NULL,
+    FOREIGN KEY (id_usuario_fk) REFERENCES usuario(id_usuario)
+);
+
+CREATE TABLE tarefa (
+    id_tarefa_pk INT IDENTITY(1,1) PRIMARY KEY,
+    id_usuario_fk INT NOT NULL,
+    id_area_fk INT NULL,
+    titulo VARCHAR(255) NOT NULL,
+    descricao VARCHAR(MAX),
+    statu VARCHAR(50),
+    data_limite DATE,
+    prioridade VARCHAR(50),
+    complexidade VARCHAR(50),
+    duracao_estimada VARCHAR(50),
+    CONSTRAINT FK_Tarefa_Usuario FOREIGN KEY (id_usuario_fk) REFERENCES usuario(id_usuario),
+    CONSTRAINT FK_Tarefa_Area FOREIGN KEY (id_area_fk) REFERENCES area_da_vida(id_area_pk)
+);
+
+CREATE TABLE subtarefa (
+    id_subtarefa_pk INT IDENTITY(1,1) PRIMARY KEY,
+    id_tarefa_fk INT NOT NULL,
+    titulo VARCHAR(255) NOT NULL,
+    statu VARCHAR(50),
+    FOREIGN KEY (id_tarefa_fk) REFERENCES tarefa(id_tarefa_pk)
+);
+
+CREATE TABLE compromisso (
+    id_compromisso_pk INT IDENTITY(1,1) PRIMARY KEY,
+    id_usuario_fk INT NOT NULL,
+    titulo VARCHAR(255) NOT NULL,
+    data DATE,
+    horario_inicio TIME,
+    horario_fim TIME,
+    FOREIGN KEY (id_usuario_fk) REFERENCES usuario(id_usuario)
+);
