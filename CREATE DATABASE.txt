@@ -1,51 +1,200 @@
-CREATE DATABASE agiliza;
+IF DB_ID(N'agiliza') IS NULL
+BEGIN
+    CREATE DATABASE agiliza;
+END;
 GO
+
 USE agiliza;
 GO
 
-CREATE TABLE usuario (
-    id_usuario INT IDENTITY(1,1) PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    senha VARCHAR(255) NOT NULL
-);
+IF OBJECT_ID(N'dbo.usuario', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.usuario (
+        id_usuario INT IDENTITY(1,1) PRIMARY KEY,
+        nome NVARCHAR(255) NOT NULL,
+        email NVARCHAR(255) NOT NULL UNIQUE,
+        senha NVARCHAR(255) NOT NULL
+    );
+END;
+GO
 
-CREATE TABLE area_da_vida (
-    id_area_pk INT IDENTITY(1,1) PRIMARY KEY,
-    id_usuario_fk INT NOT NULL,
-    nome VARCHAR(255) NOT NULL,
-    FOREIGN KEY (id_usuario_fk) REFERENCES usuario(id_usuario)
-);
+IF COL_LENGTH(N'dbo.usuario', N'curso') IS NULL
+    ALTER TABLE dbo.usuario ADD curso NVARCHAR(255) NULL;
+IF COL_LENGTH(N'dbo.usuario', N'bio') IS NULL
+    ALTER TABLE dbo.usuario ADD bio NVARCHAR(MAX) NULL;
+IF COL_LENGTH(N'dbo.usuario', N'fuso_horario') IS NULL
+    ALTER TABLE dbo.usuario ADD fuso_horario NVARCHAR(100) NOT NULL
+        CONSTRAINT DF_usuario_fuso_horario DEFAULT N'America/Sao_Paulo';
+IF COL_LENGTH(N'dbo.usuario', N'idioma') IS NULL
+    ALTER TABLE dbo.usuario ADD idioma NVARCHAR(10) NOT NULL
+        CONSTRAINT DF_usuario_idioma DEFAULT N'pt-BR';
+GO
 
-CREATE TABLE tarefa (
-    id_tarefa_pk INT IDENTITY(1,1) PRIMARY KEY,
-    id_usuario_fk INT NOT NULL,
-    id_area_fk INT NULL,
-    titulo VARCHAR(255) NOT NULL,
-    descricao VARCHAR(MAX),
-    statu VARCHAR(50),
-    data_limite DATE,
-    prioridade VARCHAR(50),
-    complexidade VARCHAR(50),
-    duracao_estimada VARCHAR(50),
-    CONSTRAINT FK_Tarefa_Usuario FOREIGN KEY (id_usuario_fk) REFERENCES usuario(id_usuario),
-    CONSTRAINT FK_Tarefa_Area FOREIGN KEY (id_area_fk) REFERENCES area_da_vida(id_area_pk)
-);
+IF OBJECT_ID(N'dbo.area_da_vida', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.area_da_vida (
+        id_area_pk INT IDENTITY(1,1) PRIMARY KEY,
+        id_usuario_fk INT NOT NULL,
+        nome NVARCHAR(255) NOT NULL,
+        cor NVARCHAR(30) NULL,
+        CONSTRAINT FK_Area_Usuario FOREIGN KEY (id_usuario_fk)
+            REFERENCES dbo.usuario(id_usuario)
+    );
+END;
+GO
 
-CREATE TABLE subtarefa (
-    id_subtarefa_pk INT IDENTITY(1,1) PRIMARY KEY,
-    id_tarefa_fk INT NOT NULL,
-    titulo VARCHAR(255) NOT NULL,
-    statu VARCHAR(50),
-    FOREIGN KEY (id_tarefa_fk) REFERENCES tarefa(id_tarefa_pk)
-);
+IF COL_LENGTH(N'dbo.area_da_vida', N'cor') IS NULL
+    ALTER TABLE dbo.area_da_vida ADD cor NVARCHAR(30) NULL;
+GO
 
-CREATE TABLE compromisso (
-    id_compromisso_pk INT IDENTITY(1,1) PRIMARY KEY,
-    id_usuario_fk INT NOT NULL,
-    titulo VARCHAR(255) NOT NULL,
-    data DATE,
-    horario_inicio TIME,
-    horario_fim TIME,
-    FOREIGN KEY (id_usuario_fk) REFERENCES usuario(id_usuario)
-);
+IF OBJECT_ID(N'dbo.meta', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.meta (
+        id_meta_pk INT IDENTITY(1,1) PRIMARY KEY,
+        id_usuario_fk INT NOT NULL,
+        id_area_fk INT NULL,
+        titulo NVARCHAR(255) NOT NULL,
+        data_alvo DATE NULL,
+        criada_em DATETIME2 NOT NULL CONSTRAINT DF_meta_criada_em DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT FK_Meta_Usuario FOREIGN KEY (id_usuario_fk)
+            REFERENCES dbo.usuario(id_usuario),
+        CONSTRAINT FK_Meta_Area FOREIGN KEY (id_area_fk)
+            REFERENCES dbo.area_da_vida(id_area_pk)
+    );
+END;
+GO
+
+IF OBJECT_ID(N'dbo.tarefa', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tarefa (
+        id_tarefa_pk INT IDENTITY(1,1) PRIMARY KEY,
+        id_usuario_fk INT NOT NULL,
+        id_area_fk INT NULL,
+        id_meta_fk INT NULL,
+        titulo NVARCHAR(255) NOT NULL,
+        descricao NVARCHAR(MAX) NULL,
+        statu NVARCHAR(50) NOT NULL CONSTRAINT DF_tarefa_statu DEFAULT N'Não iniciada',
+        data_limite DATE NULL,
+        horario_inicio TIME NULL,
+        prioridade NVARCHAR(50) NULL,
+        criticidade NVARCHAR(50) NULL,
+        complexidade NVARCHAR(50) NULL,
+        duracao_estimada NVARCHAR(50) NULL,
+        importante BIT NOT NULL CONSTRAINT DF_tarefa_importante DEFAULT 0,
+        adiamentos INT NOT NULL CONSTRAINT DF_tarefa_adiamentos DEFAULT 0,
+        tempo_gasto INT NOT NULL CONSTRAINT DF_tarefa_tempo_gasto DEFAULT 0,
+        data_conclusao DATETIME2 NULL,
+        data_criacao DATETIME2 NOT NULL CONSTRAINT DF_tarefa_data_criacao DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT FK_Tarefa_Usuario FOREIGN KEY (id_usuario_fk)
+            REFERENCES dbo.usuario(id_usuario),
+        CONSTRAINT FK_Tarefa_Area FOREIGN KEY (id_area_fk)
+            REFERENCES dbo.area_da_vida(id_area_pk),
+        CONSTRAINT FK_Tarefa_Meta FOREIGN KEY (id_meta_fk)
+            REFERENCES dbo.meta(id_meta_pk)
+    );
+END;
+GO
+
+IF COL_LENGTH(N'dbo.tarefa', N'id_meta_fk') IS NULL
+    ALTER TABLE dbo.tarefa ADD id_meta_fk INT NULL;
+IF COL_LENGTH(N'dbo.tarefa', N'horario_inicio') IS NULL
+    ALTER TABLE dbo.tarefa ADD horario_inicio TIME NULL;
+IF COL_LENGTH(N'dbo.tarefa', N'criticidade') IS NULL
+    ALTER TABLE dbo.tarefa ADD criticidade NVARCHAR(50) NULL;
+IF COL_LENGTH(N'dbo.tarefa', N'importante') IS NULL
+    ALTER TABLE dbo.tarefa ADD importante BIT NOT NULL
+        CONSTRAINT DF_tarefa_importante DEFAULT 0;
+IF COL_LENGTH(N'dbo.tarefa', N'adiamentos') IS NULL
+    ALTER TABLE dbo.tarefa ADD adiamentos INT NOT NULL
+        CONSTRAINT DF_tarefa_adiamentos DEFAULT 0;
+IF COL_LENGTH(N'dbo.tarefa', N'tempo_gasto') IS NULL
+    ALTER TABLE dbo.tarefa ADD tempo_gasto INT NOT NULL
+        CONSTRAINT DF_tarefa_tempo_gasto DEFAULT 0;
+IF COL_LENGTH(N'dbo.tarefa', N'data_conclusao') IS NULL
+    ALTER TABLE dbo.tarefa ADD data_conclusao DATETIME2 NULL;
+IF COL_LENGTH(N'dbo.tarefa', N'data_criacao') IS NULL
+    ALTER TABLE dbo.tarefa ADD data_criacao DATETIME2 NOT NULL
+        CONSTRAINT DF_tarefa_data_criacao DEFAULT SYSUTCDATETIME();
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Tarefa_Meta'
+)
+    ALTER TABLE dbo.tarefa ADD CONSTRAINT FK_Tarefa_Meta
+        FOREIGN KEY (id_meta_fk) REFERENCES dbo.meta(id_meta_pk);
+GO
+
+IF OBJECT_ID(N'dbo.subtarefa', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.subtarefa (
+        id_subtarefa_pk INT IDENTITY(1,1) PRIMARY KEY,
+        id_tarefa_fk INT NOT NULL,
+        titulo NVARCHAR(255) NOT NULL,
+        statu NVARCHAR(50) NOT NULL CONSTRAINT DF_subtarefa_statu DEFAULT N'Não iniciada',
+        CONSTRAINT FK_Subtarefa_Tarefa FOREIGN KEY (id_tarefa_fk)
+            REFERENCES dbo.tarefa(id_tarefa_pk) ON DELETE CASCADE
+    );
+END;
+GO
+
+IF OBJECT_ID(N'dbo.compromisso', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.compromisso (
+        id_compromisso_pk INT IDENTITY(1,1) PRIMARY KEY,
+        id_usuario_fk INT NOT NULL,
+        id_area_fk INT NULL,
+        titulo NVARCHAR(255) NOT NULL,
+        descricao NVARCHAR(MAX) NULL,
+        data DATE NOT NULL,
+        horario_inicio TIME NOT NULL,
+        horario_fim TIME NULL,
+        CONSTRAINT FK_Compromisso_Usuario FOREIGN KEY (id_usuario_fk)
+            REFERENCES dbo.usuario(id_usuario),
+        CONSTRAINT FK_Compromisso_Area FOREIGN KEY (id_area_fk)
+            REFERENCES dbo.area_da_vida(id_area_pk)
+    );
+END;
+GO
+
+IF COL_LENGTH(N'dbo.compromisso', N'id_area_fk') IS NULL
+    ALTER TABLE dbo.compromisso ADD id_area_fk INT NULL;
+IF COL_LENGTH(N'dbo.compromisso', N'descricao') IS NULL
+    ALTER TABLE dbo.compromisso ADD descricao NVARCHAR(MAX) NULL;
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Compromisso_Area'
+)
+    ALTER TABLE dbo.compromisso ADD CONSTRAINT FK_Compromisso_Area
+        FOREIGN KEY (id_area_fk) REFERENCES dbo.area_da_vida(id_area_pk);
+GO
+
+IF OBJECT_ID(N'dbo.preferencia_usuario', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.preferencia_usuario (
+        id_usuario_fk INT PRIMARY KEY,
+        preferencias_json NVARCHAR(MAX) NOT NULL
+            CONSTRAINT DF_preferencia_json DEFAULT N'{}',
+        disponibilidade_json NVARCHAR(MAX) NOT NULL
+            CONSTRAINT DF_disponibilidade_json DEFAULT N'{}',
+        perfil_rotina NVARCHAR(50) NOT NULL
+            CONSTRAINT DF_perfil_rotina DEFAULT N'ambos',
+        CONSTRAINT FK_Preferencia_Usuario FOREIGN KEY (id_usuario_fk)
+            REFERENCES dbo.usuario(id_usuario) ON DELETE CASCADE
+    );
+END;
+GO
+
+IF OBJECT_ID(N'dbo.sessao_usuario', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.sessao_usuario (
+        token_hash CHAR(64) PRIMARY KEY,
+        id_usuario_fk INT NOT NULL,
+        expira_em DATETIME2 NOT NULL,
+        criada_em DATETIME2 NOT NULL CONSTRAINT DF_sessao_criada_em DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT FK_Sessao_Usuario FOREIGN KEY (id_usuario_fk)
+            REFERENCES dbo.usuario(id_usuario) ON DELETE CASCADE
+    );
+    CREATE INDEX IX_sessao_usuario_expira_em ON dbo.sessao_usuario(expira_em);
+END;
+GO
