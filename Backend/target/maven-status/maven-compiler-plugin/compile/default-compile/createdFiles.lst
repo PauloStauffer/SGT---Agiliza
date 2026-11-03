@@ -1,0 +1,5 @@
+com\agiliza\WebConfig.class
+com\agiliza\AgilizaApplication.class
+com\agiliza\ApiController.class
+com\agiliza\security\PasswordHasher.class
+com\agiliza\security\AuthInterceptor.class
